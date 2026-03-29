@@ -8,7 +8,7 @@ on:
       send_summary:
         description: "チェック完了サマリーをDiscordに送信する"
         type: boolean
-        default: false
+        default: true
 
 jobs:
   track:

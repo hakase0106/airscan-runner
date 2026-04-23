@@ -1,0 +1,47 @@
+name: AirScan - Daily Summary
+
+# 毎日 JST 11:00 (= UTC 02:00) に過去30日の平均価格サマリーを Discord に通知。
+# GitHub Actions の cron は UTC 指定のみ。
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily-summary:
+    name: Post Daily Average Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout airscan
+        uses: actions/checkout@v4
+        with:
+          repository: hakase0106/airscan
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily summary
+        working-directory: src
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python daily_summary.py
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"content": "⚠️ **AirScan Daily Summary** GitHub Actions ジョブが失敗しました。ログを確認してください。"}'

@@ -1,0 +1,47 @@
+# 日程最適化レポート (flex) をオンデマンドで実行。
+# scanner コードは hakase0106/airscan (private) を checkout して使う。
+# config の flex: ブロックを持つルートのみ分析し Discord に投稿する。
+name: AirScan - Flex Report
+
+on:
+  workflow_dispatch:
+  # 週1で自動更新したい場合は有効化 (毎週月曜 JST 09:00 = UTC 00:00)
+  # schedule:
+  #   - cron: "0 0 * * 1"
+
+jobs:
+  flex-report:
+    name: Date Flexibility Optimization
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout airscan
+        uses: actions/checkout@v4
+        with:
+          repository: hakase0106/airscan
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run flex report
+        working-directory: src
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python flex_report.py
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"content": "⚠️ **AirScan Flex Report** GitHub Actions ジョブが失敗しました。ログを確認してください。"}'

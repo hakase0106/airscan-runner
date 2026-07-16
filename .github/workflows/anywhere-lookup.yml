@@ -1,0 +1,52 @@
+# companion リポジトリ hakase0106/airscan-runner の
+# .github/workflows/anywhere-lookup.yml として配置する。
+#
+# Discord /anywhere コマンド → Supabase Edge Function → repository_dispatch(この workflow)。
+# 出発地から世界最安(片道)ランキングを算出し、Discord のインタラクションに返信する。
+#
+# SOURCE=db(既定): Supabase price_history を読むだけ (数秒で完了)。SUPABASE_URL/KEY が必要。
+# SOURCE=live    : 主要都市を絞ってライブスキャン (数分)。
+name: AirScan - Anywhere Lookup
+
+on:
+  repository_dispatch:
+    types: [anywhere-lookup]
+
+jobs:
+  lookup:
+    name: World Cheapest Lookup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 同時実行を1件に絞る (乱打対策)
+    concurrency:
+      group: anywhere-lookup
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout airscan
+        uses: actions/checkout@v4
+        with:
+          repository: hakase0106/airscan
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run anywhere lookup
+        working-directory: src
+        env:
+          ORIGIN: ${{ github.event.client_payload.origin }}
+          WHEN: ${{ github.event.client_payload.when }}
+          SOURCE: ${{ github.event.client_payload.source }}
+          CABIN: ${{ github.event.client_payload.cabin }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          DISCORD_APP_ID: ${{ github.event.client_payload.application_id }}
+          DISCORD_INTERACTION_TOKEN: ${{ github.event.client_payload.token }}
+        run: python anywhere_lookup.py

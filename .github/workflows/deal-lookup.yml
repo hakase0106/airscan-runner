@@ -42,6 +42,7 @@ jobs:
           ORIGIN: ${{ github.event.client_payload.origin }}
           TRIP: ${{ github.event.client_payload.trip }}
           NIGHTS: ${{ github.event.client_payload.nights }}
+          WHEN: ${{ github.event.client_payload.when }}
           MONTHS: ${{ github.event.client_payload.months }}
           CABIN: ${{ github.event.client_payload.cabin }}
           DISCORD_APP_ID: ${{ github.event.client_payload.application_id }}

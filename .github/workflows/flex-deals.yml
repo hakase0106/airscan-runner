@@ -1,0 +1,48 @@
+# このファイルは companion リポジトリ hakase0106/airscan-runner の
+# .github/workflows/flex-deals.yml として配置する。
+#
+# お得な路線ダイジェスト: 直近15〜60日の出発で HND・NRT 発全路線をスキャンし、
+# 割引率ランキングを Discord に自動投稿する (急落アラートの近距離版)。
+name: AirScan - Flex Deals
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 22 * * *"   # 毎日 UTC 22:00 = JST 翌07:00 の朝ダイジェスト
+
+jobs:
+  flex-deals:
+    name: Near-term Best Deals Digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout airscan
+        uses: actions/checkout@v4
+        with:
+          repository: hakase0106/airscan
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run flex deals
+        working-directory: src
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python flex_deals.py
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"content": "⚠️ **AirScan Flex Deals** GitHub Actions ジョブが失敗しました。ログを確認してください。"}'

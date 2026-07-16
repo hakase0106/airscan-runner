@@ -1,0 +1,46 @@
+# companion リポジトリ hakase0106/airscan-runner の
+# .github/workflows/deal-lookup.yml として配置する。
+#
+# Discord /deal コマンド → Supabase Edge Function → repository_dispatch(この workflow)。
+# 行き先を全期間スキャンして最安期間を算出し、Discord のインタラクションに返信する。
+name: AirScan - Deal Lookup
+
+on:
+  repository_dispatch:
+    types: [deal-lookup]
+
+jobs:
+  lookup:
+    name: On-demand Cheapest-Period Lookup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 同時実行を1件に絞る (乱打対策)
+    concurrency:
+      group: deal-lookup
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout airscan
+        uses: actions/checkout@v4
+        with:
+          repository: hakase0106/airscan
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run deal lookup
+        working-directory: src
+        env:
+          QUERY: ${{ github.event.client_payload.query }}
+          MONTHS: ${{ github.event.client_payload.months }}
+          CABIN: ${{ github.event.client_payload.cabin }}
+          DISCORD_APP_ID: ${{ github.event.client_payload.application_id }}
+          DISCORD_INTERACTION_TOKEN: ${{ github.event.client_payload.token }}
+        run: python deal_lookup.py

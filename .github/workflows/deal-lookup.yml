@@ -39,6 +39,9 @@ jobs:
         working-directory: src
         env:
           QUERY: ${{ github.event.client_payload.query }}
+          ORIGIN: ${{ github.event.client_payload.origin }}
+          TRIP: ${{ github.event.client_payload.trip }}
+          NIGHTS: ${{ github.event.client_payload.nights }}
           MONTHS: ${{ github.event.client_payload.months }}
           CABIN: ${{ github.event.client_payload.cabin }}
           DISCORD_APP_ID: ${{ github.event.client_payload.application_id }}

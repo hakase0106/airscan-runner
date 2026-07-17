@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: hakase0106/airscan
-          token: ${{ secrets.PRIVATE_REPO_PAT }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
